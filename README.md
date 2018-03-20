@@ -27,7 +27,7 @@ Only part of the following verilog directives are supported (see the comments be
   -outdir|o <outdir> Specify the output direcotry of preprocess. If not specified, 
                        it will be the same as source file.
   -incdir|I  <dir>     Specify the include dirs for preprocess script.
-  -eval|e              Add some perl code that will be execute before the preprocess.
+  -eval|e              Add some perl code that will be execute before the embedded perl preprocess.
   -debug               Show more message for debug.
   -D         <macro>   Define a preprocess macro.
   -noenv               Don't push current env to perl preprocess
