@@ -12,7 +12,7 @@ Only part of the following verilog directives are supported (see the comments be
 `line Verilog Source filename and number    //UNSUPORTED
 `undef Verilog Undefine text macro
 
-================================Embedded Perl preprocessing SPEC from System RDL spec 1.0 Chapter 13 ==================
+=====Embedded Perl preprocessing SPEC from System RDL spec 1.0 Chapter 13 =======
 
 13. Preprocessor directives
 
