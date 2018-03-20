@@ -3,6 +3,7 @@
 #        SystemRDL  Preprocess Script                                       #
 #        Author: Xinwei Gong                                                #
 #        Mail:   gxwcxl2010@gmail.com                                       #
+#        Github URL: https://github.com/gxwcxl2010/System-RDL-preprocess    #
 #############################################################################
 use Getopt::Long;
 use Data::Dumper;
