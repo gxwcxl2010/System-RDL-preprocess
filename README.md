@@ -3,15 +3,15 @@ This project is used to develop a script to support the preprocess code that def
 Only part of the following verilog directives are supported (see the comments below.) but I think it's enough.
 
 ```
-\`define SystemVerilog Text macro definition
-\`if Verilog Conditional compilation        //UNSUPPORTED
-\`else Verilog Conditional compilation              
-\`elsif Verilog Conditional compilation
-\`ifdef Verilog Conditional compilation
-\`ifndef Verilog Conditional compilation
-\`include Verilog File inclusion
-\`line Verilog Source filename and number    //UNSUPORTED
-\`undef Verilog Undefine text macro
+`define SystemVerilog Text macro definition
+`if Verilog Conditional compilation        //UNSUPPORTED
+`else Verilog Conditional compilation              
+`elsif Verilog Conditional compilation
+`ifdef Verilog Conditional compilation
+`ifndef Verilog Conditional compilation
+`include Verilog File inclusion
+`line Verilog Source filename and number    //UNSUPORTED
+`undef Verilog Undefine text macro
 ```
 =====Embedded Perl preprocessing SPEC from System RDL spec 1.0 Chapter 13 =======
 
