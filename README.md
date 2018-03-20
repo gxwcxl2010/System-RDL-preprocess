@@ -13,6 +13,27 @@ Only part of the following verilog directives are supported (see the comments be
 `line Verilog Source filename and number    //UNSUPORTED
 `undef Verilog Undefine text macro
 ```
+
+# Usage
+```
+  rdl_prepro.pl [-outdir <output dir>][-I include_dir] [-e "perl eval code"] [-debug <N>] [-D <MACRO>] <rdl_file.rdl>
+
+  -----------------------------------------------------------------------------------------
+  #Description:
+     Process perl preprocess code that defined in SystemRDL. (<% some perl code %> or <%= some perl express%>)
+     Process directive macros, current support ones: `ifdef, `ifndef, `else, `endif, `define, `undef
+  -----------------------------------------------------------------------------------------
+  #Options:
+  -outdir|o <outdir> Specify the output direcotry of preprocess. If not specified, 
+                       it will be the same as source file.
+  -incdir|I  <dir>     Specify the include dirs for preprocess script.
+  -eval|e              Add some perl code that will be execute before the preprocess.
+  -debug               Show more message for debug.
+  -D         <macro>   Define a preprocess macro.
+  -noenv               Don't push current env to perl preprocess
+  -help                Show this message for help.
+
+```
 =====Embedded Perl preprocessing SPEC from System RDL spec 1.0 Chapter 13 =======
 
 ## 13. Preprocessor directives
