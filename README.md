@@ -31,6 +31,7 @@ Only part of the following verilog directives are supported (see the comments be
   -debug               Show more message for debug.
   -D         <macro>   Define a preprocess macro.
   -noenv               Don't push current env to perl preprocess
+  -stdout|c            Output result to standard output instead of a file
   -help                Show this message for help.
 
 ```
