@@ -16,6 +16,7 @@ my $debug         = 0;
 my $help          = undef;
 my $outdir        = undef;
 my $noenv         = undef;
+my $stdout        = undef;
 
 my $optHash = {
     "outdir|od=s"  => \$outdir,
@@ -24,12 +25,13 @@ my $optHash = {
     "eval|e=s"     => \$argEval,
     "debug=i"      => \$debug,
     "help|h"       => \$help,
+    "stdout|c"     => \$stdout,
     "noenv"        => \$noenv
 };
 
 sub Usage {
     my $HELP_STR = << 'END_STR';
-  rdl_prepro.pl [-outdir <output dir>][-I include_dir] [-e "perl eval code"] [-debug <N>] [-D <MACRO>] <rdl_file.rdl>
+  rdl_prepro.pl [-outdir <output dir>][-I include_dir] [-e "perl eval code"] [-debug <N>] [-D <MACRO>] [-c] <rdl_file.rdl>
 
   -----------------------------------------------------------------------------------------
   #Description:
@@ -44,6 +46,7 @@ sub Usage {
   -debug               Show more message for debug.
   -D         <macro>   Define a preprocess macro.
   -noenv               Don't push current env to perl preprocess
+  -stdout|c            Output result to standard output instead of a file
   -help                Show this message for help.
 
 END_STR
@@ -67,12 +70,12 @@ if(not defined $noenv){
     $appendEnv .="};";
 }
 foreach(@incdirs){
-  print "incidr:",$_,"\n" if $debug > 1;
+  print STDERR "incidr:",$_,"\n" if $debug > 1;
 }
 foreach(@ARGV){
-  print "ARGV:$_\n" if $debug > 1;
+  print STDERR "ARGV:$_\n" if $debug > 1;
 }
-print "process rdl file number:",scalar(@ARGV) , "\n";
+print STDERR "process rdl file number:",scalar(@ARGV) , "\n" if (not $stdout);
 die "ERROR! No file to process!\n" if scalar(@ARGV) < 1;
 
 #Flags for macro processing
@@ -107,10 +110,11 @@ sub pre_preproc {
 sub post_preproc {
     my $file = shift @_;
     #check directive parse ending
-    print "directiveDepth = $directiveDepth\n" if $debug > 1;
+    print STDERR "directiveDepth = $directiveDepth\n" if $debug > 1;
     if($directiveDepth != 0){
         die "`endif missed for macro:@waitingMacros of file $file !\n";
     }
+    return if ($stdout);
     #check preprocess output file
     my $rdl_ppp_final = "$file\.pp.final";
     if(not -e $rdl_ppp_final){
@@ -120,14 +124,14 @@ sub post_preproc {
     if(defined $outdir){
         system("mv $rdl_ppp_final $outdir");
         $rdl_ppp_final =~ s@^.*/@@;
-        print "rdl_ppp_final = $rdl_ppp_final\n";
+        print STDERR "rdl_ppp_final = $rdl_ppp_final\n";
         $rdl_ppp_final = "$outdir/$rdl_ppp_final";
         $rdl_ppp_final =~ s@/+@/@g;
         if(not -e $rdl_ppp_final){
             die "ERROR! write file failed for $rdl_ppp_final!\n";
         }
     }
-    print "Generated file $rdl_ppp_final\n";
+    print STDERR "Generated file $rdl_ppp_final\n";
 }
 
 
@@ -136,7 +140,7 @@ sub proc_macros {
     my $file      = shift @_;
     my $parent_fh = shift @_;
     
-    print "enter proc_macros for $file!\n" if $debug > 1;
+    print STDERR "enter proc_macros for $file!\n" if $debug > 1;
 
     my $line      = 0;
     open (my $fh, '<', $file) or die "$! File:$file\n";
@@ -151,7 +155,7 @@ sub proc_macros {
         if(m/^\s*\t*`define[\s\t]+\b(\w+)\b([\s\t]+\b(\w+)\b)*/){
             $ignore_this_line    = 1;
             $definedMacros->{$1} = defined $3 ? $3 : 1;
-            print "define macro: $1 at $file:$line!\n" if $debug > 1;
+            print STDERR "define macro: $1 at $file:$line!\n" if $debug > 1;
         }
         elsif(m/^\s*\t*`undef[\s\t]+\b(\w+)\b/){
             $ignore_this_line    = 1;
@@ -169,8 +173,8 @@ sub proc_macros {
                 if(not exists $definedMacros->{$1}){
                     $ignore_till_else_or_endif = 1;
                     $ignore_depth              = $directiveDepth;
-                    print " Start `ifdef ingore for $waitingMacros[-1], ignore_depth=$ignore_depth at $file:$line!\n" if $debug > 1;
-                    print Dumper("definedMacros",$definedMacros) if $debug > 1;
+                    print STDERR " Start `ifdef ingore for $waitingMacros[-1], ignore_depth=$ignore_depth at $file:$line!\n" if $debug > 1;
+                    print STDERR Dumper("definedMacros",$definedMacros) if $debug > 1;
                 }
                 else {
                     $macrosRef->{hit_if_branch} = 1;
@@ -188,8 +192,8 @@ sub proc_macros {
                 if(exists $definedMacros->{$1}){
                     $ignore_till_else_or_endif = 1;
                     $ignore_depth = $directiveDepth;
-                    print " Start `ifndef ingore for $macrosRef->{macros}[-1], ignore_depth=$ignore_depth at $file:$line!\n" if $debug > 1;
-                    print Dumper("definedMacros",$definedMacros) if $debug > 1;
+                    print STDERR " Start `ifndef ingore for $macrosRef->{macros}[-1], ignore_depth=$ignore_depth at $file:$line!\n" if $debug > 1;
+                    print STDERR Dumper("definedMacros",$definedMacros) if $debug > 1;
                 }
                 else {
                     $macrosRef->{hit_if_branch} = 1;
@@ -200,11 +204,11 @@ sub proc_macros {
             $ignore_this_line = 1;
             if($ignore_till_else_or_endif ==1 && $directiveDepth == $ignore_depth){
                 $ignore_till_else_or_endif = 0;
-                print " find `endif for @{$waitingMacros[-1]->{macros}}!\n" if $debug > 1;
+                print STDERR " find `endif for @{$waitingMacros[-1]->{macros}}!\n" if $debug > 1;
             }
             if($ignore_till_endif ==1 && $directiveDepth == $ignore_depth){
                 $ignore_till_endif = 0;
-                print " find `endif for @{$waitingMacros[-1]->{macros}}!\n" if $debug > 1;
+                print STDERR " find `endif for @{$waitingMacros[-1]->{macros}}!\n" if $debug > 1;
             }
             $directiveDepth--;
             pop @waitingMacros;
@@ -220,14 +224,14 @@ sub proc_macros {
             }
             if($ignore_till_else_or_endif == 1 && $directiveDepth == $ignore_depth){
                 $ignore_till_else_or_endif = 0;
-                print " find `else for \[@{$macrosRef->{macros}}\] at $file:$line!\n" if $debug > 1;
+                print STDERR " find `else for \[@{$macrosRef->{macros}}\] at $file:$line!\n" if $debug > 1;
             }
-            print "Before check `else ignore_till_else_or_endif:$ignore_till_else_or_endif,ignore_till_endif:$ignore_till_endif,waitingMacros:\[@{$macrosRef->{macros}}\], hit_if_branch=$macrosRef->{hit_if_branch}\n" if $debug > 1;
+            print STDERR "Before check `else ignore_till_else_or_endif:$ignore_till_else_or_endif,ignore_till_endif:$ignore_till_endif,waitingMacros:\[@{$macrosRef->{macros}}\], hit_if_branch=$macrosRef->{hit_if_branch}\n" if $debug > 1;
             if(($ignore_till_else_or_endif == 0 and $ignore_till_endif == 0) and
                 $macrosRef->{hit_if_branch} == 1){
                 $ignore_till_endif = 1;
                 $ignore_depth      = $directiveDepth;
-                print " Start `else ingore for \[@{$macrosRef->{macros}}\], ignore_depth=$ignore_depth at $file:$line!\n" if $debug > 1;
+                print STDERR " Start `else ingore for \[@{$macrosRef->{macros}}\], ignore_depth=$ignore_depth at $file:$line!\n" if $debug > 1;
             }
         }
         elsif(m/^\s*\t*`elsif[\s\t]+\b(\w+)\b/){
@@ -244,13 +248,13 @@ sub proc_macros {
             push @{$macrosRef->{macros}}, $1;
             if($ignore_till_else_or_endif == 1 && $directiveDepth == $ignore_depth){
                 $ignore_till_else_or_endif = 0;
-                print " find `elsif for $testMacroPre at $file:$line!\n" if $debug > 1;
+                print STDERR " find `elsif for $testMacroPre at $file:$line!\n" if $debug > 1;
             }
             if($ignore_till_else_or_endif == 0 and $ignore_till_endif == 0){
                 if($macrosRef->{hit_if_branch} == 1 or (not exists $definedMacros->{$testMacroCur})){
                     $ignore_till_else_or_endif = 1;
                     $ignore_depth      = $directiveDepth;
-                    print " Start `elsif ingore for $testMacroCur, ignore_depth=$ignore_depth at $file:$line!\n" if $debug > 1;
+                    print STDERR " Start `elsif ingore for $testMacroCur, ignore_depth=$ignore_depth at $file:$line!\n" if $debug > 1;
                 }
                 else {
                     $macrosRef->{hit_if_branch} = 1;
@@ -275,7 +279,7 @@ sub proc_macros {
                 die "ERROR! $file:$line has unknow directive macro! Error line: $_\n";
             }
         }
-        print "ignore_this_line = $ignore_this_line\n" if $debug > 8;
+        print STDERR "ignore_this_line = $ignore_this_line\n" if $debug > 8;
         if($ignore_this_line == 1){
             next;
         }
@@ -285,7 +289,7 @@ sub proc_macros {
             foreach my $dir(@incdirs){
                 my $test_file = "$dir/$inc_file";
                 if(-f "$test_file"){
-                    print "processing include file $test_file in $file ....\n" if $debug>-1;
+                    print STDERR "processing include file $test_file in $file ....\n" if $debug>-1;
                     &do_preproc($test_file,$parent_fh);
                     $found = 1;
                     last;
@@ -305,10 +309,10 @@ sub do_preproc {
     my $file      = shift @_;
     my $parent_fh = shift @_;
     if(defined $parent_fh){
-        print "do_preproc: $file, parent_fh used!\n" if $debug > 1;
+        print STDERR "do_preproc: $file, parent_fh used!\n" if $debug > 1;
     }
     else {
-        print "do_preproc: $file, null\n" if $debug > 1;
+        print STDERR "do_preproc: $file, null\n" if $debug > 1;
     }
     my $pl_file = $file.".pl";
     open (my $plfh, '>', $pl_file) or die $!;
@@ -371,7 +375,7 @@ sub do_preproc {
     #print STDERR "plcmd=$plcmd\n";
     my $cmd_status = system("$plcmd");
     die "ERROR! perl code preprocess status: $cmd_status, plcmd = $plcmd\n" if $cmd_status > 0;
-    print "perl code preprocess status: $cmd_status, plcmd = $plcmd\n" if $debug > 4;
+    print STDERR "perl code preprocess status: $cmd_status, plcmd = $plcmd\n" if $debug > 4;
     #delete comments
     system('sed -i \'s%//.*$%%\' '."$rdl_ppp");
     #delete empty lines
@@ -380,13 +384,18 @@ sub do_preproc {
     system("rm $pl_file") if $debug == 0 and $cmd_status == 0;
 
     my $rdl_ppp_final = "$file\.pp.final";
-    open (my $pp_final_fh, '>', $rdl_ppp_final) or die $!;
+    my $pp_final_fh;
+    if ($stdout) {
+        $pp_final_fh = *STDOUT;
+    } else {
+        open ($pp_final_fh, '>', $rdl_ppp_final) or die $!;
+    }
     &proc_macros($rdl_ppp,$pp_final_fh);
-    close $pp_final_fh;
+    close $pp_final_fh if (not $stdout);
 
 
     if(defined $parent_fh){
-        print "Define parent_fh for $rdl_ppp\n" if $debug > 1;
+        print STDERR "Define parent_fh for $rdl_ppp\n" if $debug > 1;
         my $pp_inc_str = `cat $rdl_ppp_final`;
         print $parent_fh $pp_inc_str;
         system("rm $rdl_ppp_final") if $debug == 0;
